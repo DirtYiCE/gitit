@@ -66,15 +66,17 @@ defaultRenderPage :: T.StringTemplate String -> PageLayout -> Html -> Handler
 defaultRenderPage templ layout htmlContents = do
   cfg <- getConfig
   base' <- getWikiBase
+  req <- askRq
   ok . setContentType "text/html; charset=utf-8" . toResponse . T.render .
-       filledPageTemplate base' cfg layout htmlContents $ templ
+       filledPageTemplate base' cfg layout htmlContents req $ templ
 
 -- | Returns a page template with gitit variables filled in.
 filledPageTemplate :: String -> Config -> PageLayout -> Html ->
-                      T.StringTemplate String -> T.StringTemplate String
-filledPageTemplate base' cfg layout htmlContents templ =
+                      Request -> T.StringTemplate String -> T.StringTemplate String
+filledPageTemplate base' cfg layout htmlContents req templ =
   let rev  = pgRevision layout
       page = pgPageName layout
+      user = getHeader "REMOTE_USER" req
       prefixedScript x = case x of
                            'h':'t':'t':'p':_  -> x
                            _                  -> base' ++ "/js/" ++ x
@@ -110,6 +112,7 @@ filledPageTemplate base' cfg layout htmlContents templ =
                    T.setAttribute "messages" (pgMessages layout) .
                    T.setAttribute "usecache" (useCache cfg) .
                    T.setAttribute "content" (renderHtmlFragment htmlContents) .
+                   T.setAttribute "username" user .
                    setBoolAttr "wikiupload" ( uploadsAllowed cfg) $
                    templ
 
